@@ -89,13 +89,23 @@ public class TrackingDataRepository {
 		return Lists.newArrayList(mongoTemplate.group(criteria, "trackingData",groupBy, TrackingValues.class));
 	}
 	
-	public Collection<TrackingValues> findMapReduce(final DateMidnight statday, final Set<Key> groupByKeys,
-			final Map<Key, String> criteriaKeys, final Set<Counter> counters) {
-		final Criteria criteria = Criteria.where("statday").is(
-				statday.toString("yyyymmdd"));
+	public Collection<TrackingValues> findMapReduce(final FindParameters findParameters) {
+		final Map<Key, Collection<Object>> criteriaKeys = findParameters.getCriteria();
+		final Set<Key> groupByKeys = findParameters.getKeys();
+		final Set<Counter> counters = findParameters.getCounters();
 		
-		for (final Map.Entry<Key, String> entry : criteriaKeys.entrySet()) {
-			criteria.and(entry.getKey().name()).is(entry.getValue());
+		final DateMidnight from = findParameters.getFrom();
+		final DateMidnight to = findParameters.getUntil();
+		
+		final Criteria criteria = Criteria.where("statday").gte(
+				from.toString("yyyymmdd")).lte(to.toString("yyyymmdd"));
+		
+		for (final Map.Entry<Key, Collection<Object>> entry : criteriaKeys.entrySet()) {
+			final List<Criteria> ors = Lists.newArrayList();
+			for(final Object value : entry.getValue()) {
+				ors.add(Criteria.where(entry.getKey().name()).is(value));
+			}
+			criteria.orOperator(ors.toArray(new Criteria[0]));
 		}
 		
 		final String mapPattern = "function(){ emit([KEYS], [COUNTERS]); };";
