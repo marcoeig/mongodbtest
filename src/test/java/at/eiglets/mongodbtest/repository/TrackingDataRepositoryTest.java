@@ -17,7 +17,7 @@ import at.eiglets.mongodbtest.domain.TrackingData;
 import at.eiglets.mongodbtest.domain.TrackingData.Counter;
 import at.eiglets.mongodbtest.domain.TrackingData.Key;
 import at.eiglets.mongodbtest.domain.TrackingValues;
-import at.eiglets.mongodbtest.repository.FindParameters.Builder;
+import at.eiglets.mongodbtest.repository.CollectParameters.Builder;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
@@ -47,7 +47,7 @@ public class TrackingDataRepositoryTest {
 		criteria.put(Key.dp, "willhaben.at4");
 		criteria.put(Key.dp, "willhaben.at9888973");
 		
-		final FindParameters findParameters = new Builder()
+		final CollectParameters params = new Builder()
 			.from(new DateMidnight().minusDays(1))
 			.until(new DateMidnight())
 			.where(criteria.asMap())
@@ -55,7 +55,7 @@ public class TrackingDataRepositoryTest {
 			.counters(Sets.newHashSet(Counter.vc)).build();
 		
 		long start = System.currentTimeMillis();
-		final Collection<TrackingValues> values = repository.findMapReduce(findParameters);
+		final Collection<TrackingValues> values = repository.findMapReduce(params);
 		System.out.println((System.currentTimeMillis() - start));
 		
 		for(final TrackingValues v : values) {

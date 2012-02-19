@@ -1,8 +1,6 @@
 package at.eiglets.mongodbtest.config;
 
 import java.net.UnknownHostException;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -11,7 +9,6 @@ import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.convert.converter.Converter;
@@ -31,7 +28,6 @@ import com.mongodb.MongoException;
 
 @Configuration
 @PropertySource("classpath:mongodb.properties")
-@ComponentScan("at.eigletsb.mongodbtest.config")
 public class MongoDBConfiguration extends AbstractMongoConfiguration {
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -45,7 +41,7 @@ public class MongoDBConfiguration extends AbstractMongoConfiguration {
 		final String mongoHost = env.getProperty("mongodb.host");
 		final int mongoPort = Integer.valueOf(env.getProperty("mongodb.port",
 				"0"));
-		log.info("create mongo instance (host={}, port={}", mongoHost,
+		log.info("create mongoDB instance (host={}, port={})", mongoHost,
 				mongoPort);
 		return new Mongo(mongoHost, mongoPort);
 	}
@@ -64,7 +60,6 @@ public class MongoDBConfiguration extends AbstractMongoConfiguration {
 	}
 
 	@ReadingConverter
-	@Component
 	public static class TrackingValuesConverter implements
 			Converter<DBObject, TrackingValues> {
 
@@ -73,10 +68,11 @@ public class MongoDBConfiguration extends AbstractMongoConfiguration {
 
 		@Override
 		public TrackingValues convert(DBObject source) {
-			
+
 			final DBObject keys = (DBObject) source.get("_id");
-			
+
 			final String statday = String.valueOf(keys.get("statday"));
+			
 			final TrackingValues values = new TrackingValues(formatter
 					.parseDateTime(statday).toDateMidnight());
 			for (final String key : keys.keySet()) {

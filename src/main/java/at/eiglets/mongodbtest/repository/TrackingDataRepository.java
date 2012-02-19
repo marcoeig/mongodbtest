@@ -11,6 +11,7 @@ import javax.inject.Inject;
 import org.joda.time.DateMidnight;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapreduce.GroupBy;
+import org.springframework.data.mongodb.core.mapreduce.MapReduceResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -23,9 +24,7 @@ import at.eiglets.mongodbtest.domain.TrackingValues;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.mongodb.DBObject;
 
 @Repository
 public class TrackingDataRepository {
@@ -89,13 +88,12 @@ public class TrackingDataRepository {
 		return Lists.newArrayList(mongoTemplate.group(criteria, "trackingData",groupBy, TrackingValues.class));
 	}
 	
-	public Collection<TrackingValues> findMapReduce(final FindParameters findParameters) {
-		final Map<Key, Collection<Object>> criteriaKeys = findParameters.getCriteria();
-		final Set<Key> groupByKeys = findParameters.getKeys();
-		final Set<Counter> counters = findParameters.getCounters();
-		
-		final DateMidnight from = findParameters.getFrom();
-		final DateMidnight to = findParameters.getUntil();
+	public Collection<TrackingValues> findMapReduce(final CollectParameters params) {
+		final Map<Key, Collection<Object>> criteriaKeys = params.getCriteria();
+		final Set<Key> groupByKeys = params.getKeys();
+		final Set<Counter> counters = params.getCounters();
+		final DateMidnight from = params.getFrom();
+		final DateMidnight to = params.getUntil();
 		
 		final Criteria criteria = Criteria.where("statday").gte(
 				from.toString("yyyymmdd")).lte(to.toString("yyyymmdd"));
@@ -108,33 +106,15 @@ public class TrackingDataRepository {
 			criteria.orOperator(ors.toArray(new Criteria[0]));
 		}
 		
-		final String mapPattern = "function(){ emit([KEYS], [COUNTERS]); };";
-		final String reducePattern = "function(key, values){var result = [COUNTERS]; values.forEach(function(value){[COUNTERS_INC]});return result;};";
+		final TrackingMapReduce mapReduceFunction = new TrackingMapReduce(groupByKeys.toArray(new Key[0]), counters.toArray(new Counter[0]));
 		
-		final StringBuilder keysMap = new StringBuilder("{statday: this.statday,");
-		for(final Key key : groupByKeys) {
-			keysMap.append(key.name() + ": this." + key.name() +",");
-		}
-		keysMap.deleteCharAt(keysMap.lastIndexOf(","));
-		keysMap.append("}");
-		
-		final StringBuilder countersMap = new StringBuilder("{");
-		final StringBuilder result = new StringBuilder("{");
-		final StringBuilder inc = new StringBuilder();
-		for(final Counter counter : counters) {
-			countersMap.append(counter.name() + ": this." + counter.name() +",");
-			result.append(counter.name() + ":0,");
-			inc.append("result."+ counter.name() + " += value."+counter.name()+";");
-		}
-		countersMap.deleteCharAt(countersMap.lastIndexOf(","));
-		countersMap.append("}");
-		result.deleteCharAt(result.lastIndexOf(","));
-		result.append("}");
-		
-		final String m = mapPattern.replace("[KEYS]", keysMap).replace("[COUNTERS]", countersMap);
-		final String r = reducePattern.replace("[COUNTERS]", result).replace("[COUNTERS_INC]", inc);
-		
-		return Lists.newArrayList(mongoTemplate.mapReduce(Query.query(criteria), "trackingData", m, r, TrackingValues.class));
+		final String m = mapReduceFunction.mapFunction();
+		final String r = mapReduceFunction.reduceFunction();
+				
+		long start = System.currentTimeMillis();
+		final MapReduceResults<TrackingValues> result = mongoTemplate.mapReduce(Query.query(criteria), "trackingData", m, r, TrackingValues.class);
+		System.out.println((System.currentTimeMillis() - start));
+		return Lists.newArrayList(result);
 	}
 
 	public void removeAll() {
