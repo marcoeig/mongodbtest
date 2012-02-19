@@ -1,7 +1,6 @@
 package at.eiglets.mongodbtest.repository;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.Random;
 
 import javax.inject.Inject;
@@ -20,7 +19,6 @@ import at.eiglets.mongodbtest.domain.TrackingValues;
 import at.eiglets.mongodbtest.repository.CollectParameters.Builder;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -31,17 +29,17 @@ public class TrackingDataRepositoryTest {
 	@Inject
 	private TrackingDataRepository repository;
 	
-//	@Test
+	@Test
 	public void test() {
 //		repository.removeAll();
 		long start = System.currentTimeMillis();
-		for(int i = 0; i< 5000 ;i++) {
+		for(int i = 0; i< 100000 ;i++) {
 			repository.add(getRandomTd());
 		}
 		System.out.println((System.currentTimeMillis() - start));
 	}
 	
-	@Test
+//	@Test
 	public void testFind() {
 		final Multimap<Key, Object> criteria = ArrayListMultimap.create();
 		criteria.put(Key.dp, "willhaben.at4");

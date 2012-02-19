@@ -10,9 +10,11 @@ import javax.inject.Inject;
 
 import org.joda.time.DateMidnight;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.mapreduce.GroupBy;
 import org.springframework.data.mongodb.core.mapreduce.MapReduceResults;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Order;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
@@ -42,7 +44,7 @@ public class TrackingDataRepository {
 		for (final Map.Entry<Key, String> entry : td.getKeys().entrySet()) {
 			criteria.and(entry.getKey().name()).is(entry.getValue());
 		}
-
+		
 		final Update update = new Update();
 		for (final Map.Entry<Counter, AtomicInteger> entry : td.getCounters()
 				.entrySet()) {
